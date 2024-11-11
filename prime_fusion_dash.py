@@ -13,7 +13,7 @@ app = dash.Dash(__name__, suppress_callback_exceptions=False)
 
 # Global variables to store state
 prime_inventory = {f"p{i+1}": 0 for i in range(200)}
-prime_inventory["p1"] = 1000  # Initial count for p1 to start fusion
+prime_inventory["p1"] = 10000  # Initial count for p1 to start fusion
 total_fusion_count = 0
 center_rule_index = 2
 spread = 5
@@ -405,7 +405,7 @@ def control_simulation(start_clicks, stop_clicks, reset_clicks):
     elif reset_clicks >0:
         #print("Resetting counts")
         prime_inventory = {f"p{i+1}": 0 for i in range(200)}
-        prime_inventory["p1"] = 1000  # Initial count for p1 to start fusion
+        prime_inventory["p1"] = 10000  # Initial count for p1 to start fusion
         total_fusion_count = 0    
 
     return False, True
