@@ -33,9 +33,12 @@ prime_list          = settings["primes"]
 fusion_rules        = settings["fusion_rules"]
 center_rule_index   = settings["center_rule_index"]
 spread              = settings["spread"]
+rule_range        = len(fusion_rules)+1
+
+
 
 # Global variables to store state
-prime_inventory     = {f"p{i+1}": 0 for i in range(200)}
+prime_inventory     = {f"p{i+1}": 0 for i in range(rule_range)}
 prime_inventory["p1"] = 10000  # Initial count for p1 to start fusion
 total_fusion_count  = 0
 
@@ -44,7 +47,7 @@ def save_settings():
     settings["center_rule_index"] = center_rule_index
     settings["spread"] = spread
     with open(settings_path, 'w') as f:
-        json.dump(settings, f, indent=4)
+        json.dump(settings, f)
         print("settings saved")
 
 def compute_weights():
@@ -103,20 +106,20 @@ app.layout = html.Div([
         dcc.Slider(
             id='center-slider',
             min=0,
-            max=200,
+            max=rule_range,
             step=1,
             value=center_rule_index,
-            marks={i: str(i) for i in range(0, 200, 10)},
+            marks={i: str(i) for i in range(0, rule_range, 10)},
             tooltip={"placement": "bottom", "always_visible": True},
         ),
         html.Div(id='center-slider-value', style={'margin-top': 10, 'margin-bottom':50, 'textAlign':'center'}),
         dcc.Slider(
             id='spread-slider',
             min=1,
-            max=200,
+            max=rule_range,
             step=1,
             value=spread,
-            marks={i: str(i) for i in range(0, 200, 10)},
+            marks={i: str(i) for i in range(0, rule_range, 10)},
             tooltip={"placement": "bottom", "always_visible": True},
         ),
         html.Div(id='spread-slider-value', style={'margin-top': 10, 'textAlign':'center'}),
@@ -152,23 +155,23 @@ def update_graph_live(n, center_value, spread_value):
     spread = spread_value
 
     # Retrieve current counts from global prime inventory
-    y_counts = [prime_inventory.get(f"p{i+1}", 0) for i in range(200)]
+    y_counts = [prime_inventory.get(f"p{i+1}", 0) for i in range(rule_range)]
     
     # Create bar chart figure
-    fig = go.Figure([go.Bar(x=[f"p{i+1}" for i in range(200)], y=y_counts, name="Prime Counts")])
+    fig = go.Figure([go.Bar(x=[f"p{i+1}" for i in range(rule_range)], y=y_counts, name="Prime Counts")])
     
     # Define x-values across the original range (0 to 199)
-    x_values = np.arange(0, 200)
+    x_values = np.arange(0, rule_range)
     
     # Calculate Gaussian curve centered on `center_rule_index`
     gaussian_curve = np.exp(-0.5 * ((x_values - center_rule_index) / spread) ** 2)
     gaussian_curve = gaussian_curve * max(y_counts)  # Scale Gaussian to match the bar height
     
     # Add Gaussian curve as a red line overlay
-    fig.add_trace(go.Scatter(x=[f"p{i+1}" for i in range(200)], y=gaussian_curve, mode='lines', line=dict(color='red'), name="Gaussian Curve"))
+    fig.add_trace(go.Scatter(x=[f"p{i+1}" for i in range(rule_range)], y=gaussian_curve, mode='lines', line=dict(color='red'), name="Gaussian Curve"))
 
     fig.update_layout(
-        xaxis_title="Prime Elements (p1 to p200)",
+        xaxis_title=f"Prime Elements (p1 to p{rule_range})",
         yaxis_title="Counts",
         #yaxis_type="linear",
         yaxis_type="log",
@@ -215,7 +218,7 @@ def control_simulation(start_clicks, stop_clicks, reset_clicks):
 
     elif reset_clicks >0:
         #print("Resetting counts")
-        prime_inventory = {f"p{i+1}": 0 for i in range(200)}
+        prime_inventory = {f"p{i+1}": 0 for i in range(rule_range)}
         prime_inventory["p1"] = 10000  # Initial count for p1 to start fusion
         total_fusion_count = 0    
 
