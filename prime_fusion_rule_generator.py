@@ -34,35 +34,51 @@ Each rule specifies how to create the next prime number, p[n+1], by "fusing" two
 ### Special Case:
 - The first rule is hardcoded as `(('p1', 'p1'), 'p2', None)` to initialize the sequence.
 
-This script supports primes up to `p82` but can be extended for larger ranges by adding primes to the `primes` dictionary.
-The generated fusion rules are output as a Python list, making them easy to copy and reuse in other scripts.
 """
 
+import json
 
+# Replace the dictionary with a list of primes
+primes = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71,
+          73, 79, 83, 89, 97, 101, 103, 107, 109, 113, 127, 131, 137, 139, 149, 151, 
+          157, 163, 167, 173, 179, 181, 191, 193, 197, 199, 211, 223, 227, 229, 233, 
+          239, 241, 251, 257, 263, 269, 271, 277, 281, 283, 293, 307, 311, 313, 317, 
+          331, 337, 347, 349, 353, 359, 367, 373, 379, 383, 389, 397, 401, 409, 419, 
+          421, 431, 433, 439, 443, 449, 457, 461, 463, 467, 479, 487, 491, 499, 503, 
+          509, 521, 523, 541, 547, 557, 563, 569, 571, 577, 587, 593, 599, 601, 607, 
+          613, 617, 619, 631, 641, 643, 647, 653, 659, 661, 673, 677, 683, 691, 701, 
+          709, 719, 727, 733, 739, 743, 751, 757, 761, 769, 773, 787, 797, 809, 811, 
+          821, 823, 827, 829, 839, 853, 857, 859, 863, 877, 881, 883, 887, 907, 911, 
+          919, 929, 937, 941, 947, 953, 967, 971, 977, 983, 991, 997, 1009, 1013, 1019, 
+          1021, 1031, 1033, 1039, 1049, 1051, 1061, 1063, 1069, 1087, 1091, 1093, 1097, 
+          1103, 1109, 1117, 1123, 1129, 1151, 1153, 1163, 1171, 1181, 1187, 1193, 1201, 
+          1213, 1217, 1223, 1229, 1231, 1237, 1249, 1259, 1277, 1279, 1283, 1289, 1291, 
+          1297, 1301, 1303, 1307, 1319, 1321, 1327, 1361, 1367, 1373, 1381, 1399, 1409, 
+          1423, 1427, 1429, 1433, 1439, 1447, 1451, 1453, 1459, 1471, 1481, 1483, 1487, 
+          1489, 1493, 1499, 1511, 1523, 1531, 1543, 1549, 1553, 1559, 1567, 1571, 1579, 
+          1583]
 
 def generate_fusion_rules(primes):
     # Initiate the first rule
     fusion_rules = [(('p1', 'p1'), 'p2', None)]
 
-    prime_names = list(primes.keys())
-    prime_values = list(primes.values())
-
-    for i in range(1, len(prime_values) - 1):
-        current_prime_value     = prime_values[i]
-        next_prime_value        = prime_values[i + 1]
-        current_prime_name      = prime_names[i]
-        next_prime_name         = prime_names[i + 1]
+    for i in range(1, len(primes) - 1):
+        current_prime_value = primes[i]
+        next_prime_value = primes[i + 1]
+        current_prime_name = f"p{i + 1}"
+        next_prime_name = f"p{i + 2}"
 
         # Calculate the gap between the current and the next prime
         prime_gap = next_prime_value - current_prime_value
 
         # Find the smallest prime (fusion_partner) that is greater than or equal to the prime gap
         fusion_partner = None
+        remainder_name = None
 
-        for j in range(len(prime_values)):
-            if prime_values[j] >= prime_gap:
-                fusion_partner = (prime_names[j], prime_values[j])
-                remainder_name = prime_names[j - 1] if j > 0 else None
+        for j in range(len(primes)):
+            if primes[j] >= prime_gap:
+                fusion_partner = (f"p{j + 1}", primes[j])
+                remainder_name = f"p{j}" if j > 0 else None
                 break
 
         # Add the fusion rule in the specified format
@@ -70,47 +86,14 @@ def generate_fusion_rules(primes):
 
     return fusion_rules
 
-
-# Define primes up to p200
-primes = {
-    "p1": 2, "p2": 3, "p3": 5, "p4": 7, "p5": 11, "p6": 13, "p7": 17,
-    "p8": 19, "p9": 23, "p10": 29, "p11": 31, "p12": 37, "p13": 41, "p14": 43,
-    "p15": 47, "p16": 53, "p17": 59, "p18": 61, "p19": 67, "p20": 71, "p21": 73,
-    "p22": 79, "p23": 83, "p24": 89, "p25": 97, "p26": 101, "p27": 103, "p28": 107,
-    "p29": 109, "p30": 113, "p31": 127, "p32": 131, "p33": 137, "p34": 139, "p35": 149,
-    "p36": 151, "p37": 157, "p38": 163, "p39": 167, "p40": 173, "p41": 179, "p42": 181,
-    "p43": 191, "p44": 193, "p45": 197, "p46": 199, "p47": 211, "p48": 223, "p49": 227,
-    "p50": 229, "p51": 233, "p52": 239, "p53": 241, "p54": 251, "p55": 257, "p56": 269,
-    "p57": 271, "p58": 277, "p59": 281, "p60": 283, "p61": 293, "p62": 307, "p63": 311,
-    "p64": 313, "p65": 317, "p66": 331, "p67": 337, "p68": 347, "p69": 349, "p70": 353,
-    "p71": 359, "p72": 367, "p73": 373, "p74": 379, "p75": 383, "p76": 389, "p77": 397,
-    "p78": 401, "p79": 409, "p80": 419, "p81": 421, "p82": 431, "p83": 433, "p84": 439,
-    "p85": 443, "p86": 449, "p87": 457, "p88": 461, "p89": 463, "p90": 467, "p91": 479,
-    "p92": 487, "p93": 491, "p94": 499, "p95": 503, "p96": 509, "p97": 521, "p98": 523,
-    "p99": 541, "p100": 547, "p101": 557, "p102": 563, "p103": 569, "p104": 571,
-    "p105": 577, "p106": 587, "p107": 593, "p108": 599, "p109": 601, "p110": 607,
-    "p111": 613, "p112": 617, "p113": 619, "p114": 631, "p115": 641, "p116": 643,
-    "p117": 647, "p118": 653, "p119": 659, "p120": 661, "p121": 673, "p122": 677,
-    "p123": 683, "p124": 691, "p125": 701, "p126": 709, "p127": 719, "p128": 727,
-    "p129": 733, "p130": 739, "p131": 743, "p132": 751, "p133": 757, "p134": 761,
-    "p135": 769, "p136": 773, "p137": 787, "p138": 797, "p139": 809, "p140": 811,
-    "p141": 821, "p142": 823, "p143": 827, "p144": 829, "p145": 839, "p146": 853,
-    "p147": 857, "p148": 859, "p149": 863, "p150": 877, "p151": 881, "p152": 883,
-    "p153": 887, "p154": 907, "p155": 911, "p156": 919, "p157": 929, "p158": 937,
-    "p159": 941, "p160": 947, "p161": 953, "p162": 967, "p163": 971, "p164": 977,
-    "p165": 983, "p166": 991, "p167": 997, "p168": 1009, "p169": 1013, "p170": 1019,
-    "p171": 1021, "p172": 1031, "p173": 1033, "p174": 1039, "p175": 1049, "p176": 1051,
-    "p177": 1061, "p178": 1063, "p179": 1069, "p180": 1087, "p181": 1091, "p182": 1093,
-    "p183": 1097, "p184": 1103, "p185": 1109, "p186": 1117, "p187": 1123, "p188": 1129,
-    "p189": 1151, "p190": 1153, "p191": 1163, "p192": 1171, "p193": 1181, "p194": 1187,
-    "p195": 1193, "p196": 1201, "p197": 1213, "p198": 1217, "p199": 1223, "p200": 1229
-}
-
 # Generate the fusion rules
 rules = generate_fusion_rules(primes)
 
-# Output the rules in a format that's easy to copy as a Python list
-print("fusion_rules = [")
-for rule in rules:
-    print(f"    {rule},")
-print("]")
+# Generate the fusion rules
+fusion_rules = generate_fusion_rules(primes)
+
+# Save the fusion rules to rules.json
+with open("rules.json", "w") as f:
+    json.dump(fusion_rules, f)
+
+print("Fusion rules have been saved to rules.json")
