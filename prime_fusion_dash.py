@@ -329,7 +329,9 @@ app.layout = html.Div([
         id='interval-component',
         interval=1*1000,  # Update every 1 second
         n_intervals=0
-    )
+    ),
+
+    html.Div(id='footer', children=[html.Img(id='footer', src='assets/abundance.jpg')], style={'text-align':'center'}),
 ])
 
 @app.callback(
@@ -365,7 +367,8 @@ def update_graph_live(n, center_value, spread_value):
     fig.update_layout(
         xaxis_title="Prime Elements (p1 to p200)",
         yaxis_title="Counts",
-        yaxis_type="linear",
+        #yaxis_type="linear",
+        yaxis_type="log",
         showlegend=False
     )
     
