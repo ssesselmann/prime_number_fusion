@@ -109,11 +109,11 @@ def stochastic_prime_fusion():
 # Define the fission rule
 def fission_rule(prime_inventory, prime_index):
     global total_fission_count
-    if prime_index >= 211:
+    if prime_index >= 212:
         # Check if there are sufficient primes in prime_inventory for the fission
         target_prime_key = f"p{prime_index}"
-        decay_prime_key_1 = f"p{prime_index - 3}"
-        decay_prime_key_2 = "p3"
+        decay_prime_key_1 = f"p{prime_index - 4}"
+        decay_prime_key_2 = "p4"
         
         # Ensure the target prime has at least one count to decay
         if prime_inventory.get(target_prime_key, 0) > 0:
