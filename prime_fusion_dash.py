@@ -245,38 +245,49 @@ def update_graph_live(n, center_value, spread_value):
     return fig, total_fusion_text, center_text, spread_text
 
 @app.callback(
-    [Output('start-button'  , 'disabled'), Output('stop-button', 'disabled')],
-    [Input('start-button'   , 'n_clicks'),
-     Input('stop-button'    , 'n_clicks'),
-     Input('reset-button'   , 'n_clicks')]
+    [Output('start-button', 'disabled'), 
+     Output('stop-button', 'disabled')],
+    [Input('start-button', 'n_clicks'),
+     Input('stop-button', 'n_clicks'),
+     Input('reset-button', 'n_clicks')]
 )
 def control_simulation(start_clicks, stop_clicks, reset_clicks):
     global fusion_thread
     global prime_inventory
 
+    # Check if reset button was clicked
+    changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
+    if 'reset-button' in changed_id:
+        print("Resetting counts")
+        prime_inventory = {f"p{i+1}": 0 for i in range(rule_range)}
+        prime_inventory["p1"] = 10000  # Initial count for p1 to start fusion
+        total_fusion_count = 0
+        # Reset button behavior: enables start and disables stop
+        start_event.clear()
+        stop_event.set()
+        return False, True  # Enables start and disables stop
+
     # Start simulation
-    if start_clicks > 0 and not start_event.is_set():
-        #print("Starting fusion")
+    elif 'start-button' in changed_id and start_clicks and not start_event.is_set():
+        print("Starting fusion")
         stop_event.clear()
         start_event.set()
         if not fusion_thread or not fusion_thread.is_alive():
             fusion_thread = threading.Thread(target=stochastic_prime_fusion, daemon=True)
             fusion_thread.start()
-        return True, False
+        return True, False  # Disables start and enables stop
 
     # Stop simulation
-    elif stop_clicks > 0:
-        #print("Stopping fusion")
+    elif 'stop-button' in changed_id and stop_clicks and start_event.is_set():
+        print("Stopping fusion")
         start_event.clear()
-        return False, True
+        stop_event.set()
+        return False, True  # Enables start and disables stop
 
-    elif reset_clicks >0:
-        #print("Resetting counts")
-        prime_inventory = {f"p{i+1}": 0 for i in range(rule_range)}
-        prime_inventory["p1"] = 10000  # Initial count for p1 to start fusion
-        total_fusion_count = 0    
-
+    # Default state (no clicks or re-run of callback)
     return False, True
+
+
 
 if __name__ == '__main__':
     webbrowser.open_new("http://127.0.0.1:8050")
