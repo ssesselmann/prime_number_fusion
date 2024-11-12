@@ -1,7 +1,7 @@
 # Prime Number Fusion Simulator
 
-This program is based on a hypotheseis that nuclear synthesis may be based on a prime number system.
-Steven Sesselmann devised a set of rules for building prime numbers as follows. 
+This program is based on the hypotheseis that nuclear synthesis may be based on a prime number system.
+Steven Sesselmann invented a set of rules for building prime numbers as follows. 
 
 # The Postulates
 * We assume an unlimited supply of p1's [prime numbers 2]
@@ -18,6 +18,9 @@ The next prime number gap between p4 and p5 is (4) and can not be completed with
 
 * With p4 an p3 we are able to construct p5: (p4 + p3) --> p5 plus a remainder p2 [7 + 5] --> [11 + 3]
 ...etc
+
+# Rule Generator Program
+Creating the prime fusion rules can be complicated and time consuming, therefore i have created a python program which takes a list of primes as input and automatically generates a set of rules. prime_fusion_rule_generator.py
 
 # The Inspiration
 The idea for this function comes from the nuclear fusion of elements in stars, where the elementary building block is hydrogen which is fused into the heavier elements. One can imagine the proton as p1 or the real number (2) and Deuterium as p2 or the real number 3, and Tritium as p3 or the real number (5). In a star as in my program, elements can not be created until their sub components have been made available.
