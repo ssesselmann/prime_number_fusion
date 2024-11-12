@@ -33,7 +33,8 @@ prime_list          = settings["primes"]
 fusion_rules        = settings["fusion_rules"]
 center_rule_index   = settings["center_rule_index"]
 spread              = settings["spread"]
-rule_range        = len(fusion_rules)+1
+center_rule_index   += 1
+rule_range          = len(fusion_rules)+1
 
 
 
@@ -41,6 +42,7 @@ rule_range        = len(fusion_rules)+1
 prime_inventory     = {f"p{i+1}": 0 for i in range(rule_range)}
 prime_inventory["p1"] = 10000  # Initial count for p1 to start fusion
 total_fusion_count  = 0
+total_fission_count = 0
 
 # Function to save settings (e.g., after slider changes)
 def save_settings():
@@ -48,7 +50,7 @@ def save_settings():
     settings["spread"] = spread
     with open(settings_path, 'w') as f:
         json.dump(settings, f)
-        print("settings saved")
+        #print("settings saved")
 
 def compute_weights():
     num_rules = len(fusion_rules)
@@ -86,11 +88,49 @@ def attempt_weighted_random_fusion():
 
 def stochastic_prime_fusion():
     print("Fusion thread started")
+    fission_attempts = 0
     while not stop_event.is_set():
         if start_event.is_set():  # Only run fusion when start_event is set
-            attempt_weighted_random_fusion()
-            #time.sleep(0.001)  # Prevent overloading the CPU
+            # Attempt fusion
+            successful_fusion = attempt_weighted_random_fusion()
+            
+            # Increment fission_attempts if fusion was successful
+            if successful_fusion:
+                fission_attempts += 1
+            
+            # Trigger fission every 100 successful fusion attempts
+            if fission_attempts >= 10000:
+                attempt_fission()
+                fission_attempts = 0  # Reset the counter
+
     print("Fusion thread stopped")
+
+
+# Define the fission rule
+def fission_rule(prime_inventory, prime_index):
+    global total_fission_count
+    if prime_index >= 211:
+        # Check if there are sufficient primes in prime_inventory for the fission
+        target_prime_key = f"p{prime_index}"
+        decay_prime_key_1 = f"p{prime_index - 3}"
+        decay_prime_key_2 = "p3"
+        
+        # Ensure the target prime has at least one count to decay
+        if prime_inventory.get(target_prime_key, 0) > 0:
+            # Apply the fission rule
+            prime_inventory[target_prime_key] -= 1
+            prime_inventory[decay_prime_key_1] += 1
+            prime_inventory[decay_prime_key_2] += 1
+            total_fission_count                += 1
+            print(f"{target_prime_key} fission decay !")
+
+def attempt_fission():
+    # Randomly select a prime at or above p211 for fission check
+    eligible_primes = [i for i in range(211, rule_range) if prime_inventory.get(f"p{i}", 0) > 0]
+    if eligible_primes:
+        prime_index = random.choice(eligible_primes)
+        fission_rule(prime_inventory, prime_index)
+
 
 # App layout
 app.layout = html.Div([
@@ -140,6 +180,9 @@ app.layout = html.Div([
     html.Div(id='footer', children=[html.Img(id='footer', src='assets/abundance.jpg')], style={'text-align':'center'}),
 ])
 
+
+
+
 @app.callback(
     [Output('live-update-graph', 'figure'),
      Output('total-fusion-count', 'children'),
@@ -150,7 +193,7 @@ app.layout = html.Div([
      Input('spread-slider', 'value')]
 )
 def update_graph_live(n, center_value, spread_value):
-    global center_rule_index, spread, total_fusion_count
+    global center_rule_index, spread, total_fusion_count, total_fission_count
     center_rule_index = center_value-1
     spread = spread_value
 
@@ -175,7 +218,18 @@ def update_graph_live(n, center_value, spread_value):
         yaxis_title="Counts",
         #yaxis_type="linear",
         yaxis_type="log",
-        showlegend=False
+        showlegend=False,
+        annotations=[
+            dict(
+                x=0.5,
+                y=1.1,
+                xref="paper",
+                yref="paper",
+                text=f"Fission Count: {total_fission_count}",
+                showarrow=False,
+                font=dict(size=16)
+            )
+        ]
     )
     
     # Display total fusion count
