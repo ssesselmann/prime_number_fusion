@@ -19,6 +19,21 @@ The next prime number gap between (p4) and (p5) is (4) and can not be filled wit
 * With (p4) an (p3) we are able to construct (p5): (p4 + p3) --> (p5) plus a remainder (p2) [7 + 5] --> [11 + 3]
 ...etc
 
+Following are the first 10 rules...
+
+* [[prime subject, prime partner], prime product, prime remainder]
+* [["p1", "p1"], "p2", null]
+* [["p2", "p1"], "p3", null]
+* [["p3", "p1"], "p4", null]
+* [["p4", "p3"], "p5", "p2"]
+* [["p5", "p1"], "p6", null]
+* [["p6", "p3"], "p7", "p2"]
+* [["p7", "p1"], "p8", null] 
+* [["p8", "p3"], "p9", "p2"]
+* [["p9", "p4"], "p10", "p3"] 
+* [["p10", "p1"], "p11", null]
+
+
 # Rule Generator Program
 Creating the prime fusion rules can be complicated and time consuming, therefore I have created a python program which takes a list of primes as input and automatically generates a set of rules. prime_fusion_rule_generator.py
 
