@@ -52,9 +52,9 @@ This program models a hypothetical fusion process based on nuclear fusion of pri
 # The CNO Fusion cycle
 Initially the program produced a good spectrum showing close correlation to isotope abundance, but there appeared to be something missing around p15 to p18 so I added a small set of rules to allow for the fission of (p15), (p17), (p18) as follows:
 
-[["p15", "p1"], "p12", "p4"],   // CNO-1
-[["p17", "p1"], "p14", "p4"],   // CNO-2
-[["p18", "p1"], "p15", "p4"],   // CNO-3
+* [["p15", "p1"], "p12", "p4"],   // CNO-1
+* [["p17", "p1"], "p14", "p4"],   // CNO-2
+* [["p18", "p1"], "p15", "p4"],   // CNO-3
 
 This correction increased the abundance in the region of C, N and O giving even better correlation.
 
@@ -67,16 +67,16 @@ After running the program for a while you will see that heavier isotopes start a
 
 The following fission rules were added
 
-      [["p210", null], "p206", "p4"], // Polonium
-[["p218", null], "p214", "p4"], // Astatine
-[["p222", null], "p218", "p4"], // Radon
-[["p226", null], "p222", "p4"], // Radon
-[["p232", null], "p228", "p4"], // Thorium
-[["p235", null], "p231", "p4"], // Uranium
-[["p238", null], "p234", "p4"], // Uranium
-[["p239", null], "p235", "p4"], // Plutonium
-[["p241", null], "p237", "p4"], // Americium
-[["p244", null], "p240", "p4"], // Curium
+* [["p210", null], "p206", "p4"], // Polonium
+* [["p218", null], "p214", "p4"], // Astatine
+* [["p222", null], "p218", "p4"], // Radon
+* [["p226", null], "p222", "p4"], // Radon
+* [["p232", null], "p228", "p4"], // Thorium
+* [["p235", null], "p231", "p4"], // Uranium
+* [["p238", null], "p234", "p4"], // Uranium
+* [["p239", null], "p235", "p4"], // Plutonium
+* [["p241", null], "p237", "p4"], // Americium
+* [["p244", null], "p240", "p4"], // Curium
 
 This results in the heavier primes decaying, which results in a peak where one would normally expect 214-Bi
 
