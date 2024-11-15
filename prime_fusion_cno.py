@@ -194,18 +194,27 @@ def stochastic_prime_fusion():
 # --------------------------------------- START HTML ------------------------------------------------------------------------------
 
 # App layout
+# App layout
 app.layout = html.Div([
+
+    dcc.Interval(
+        id='interval-component',
+        interval=1*1000,  # Update every second
+        n_intervals=0
+    ),
+
+    # Header section
     html.Div(id='header', children=[
         html.H1("Prime Number Nuclear Synthesis"),
         html.P('by Steven Sesselmann'),
     ], style={'text-align': 'center', 'margin-bottom': '20px'}),
 
-    # Center the entire layout
-    html.Div(style={'display': 'flex', 'flex-direction': 'column', 'align-items': 'center', 'width': '80%', 'margin': '0 auto'}, children=[
-        # Center the chart
+    # Main content container
+    html.Div(id="box", children=[
+        # Chart container
         html.Div(id="graph", children=[
-            dcc.Graph(id='live-update-graph'),
-        ], style={'width': '100%'}),
+            dcc.Graph(id='live-update-graph', style={'height': '600px', 'width': '100%'})
+        ], style={'width': '100%', 'max-width': '1200px', 'margin': '0 auto'}),
 
         # Row for switches and buttons
         html.Div(id='controls-row', children=[
@@ -223,23 +232,35 @@ app.layout = html.Div([
                 html.Button('Stop', id='stop-button', n_clicks=0, style={'backgroundColor': 'red', 'color': 'white', 'margin': '10px'}),
                 html.Button('Reset', id='reset-button', n_clicks=0, style={'backgroundColor': 'orange', 'color': 'white', 'margin': '10px'}),
             ], style={'display': 'flex'}),
-        ], style={'display': 'flex', 'align-items': 'center', 'justify-content': 'space-between', 'margin-top': '20px', 'width': '100%'}),
-
-        # Interval component for live updates
-        dcc.Interval(
-            id='interval-component',
-            interval=1 * 1000,  # Update every 1 second
-            n_intervals=0
-        ),
+        ], style={
+            'display': 'flex',
+            'align-items': 'center',
+            'justify-content': 'center',
+            'margin-top': '20px',
+            'width': '100%',
+            'max-width': '1200px',
+        }),
 
         # Footer and output display
         html.Div(id='footer', children=[
-            html.Img(id='footer', src='assets/abundance.jpg'),
+            html.Img(id='footer', src='assets/abundance.jpg', style={'max-width': '100%', 'height': 'auto'}),
         ], style={'text-align': 'center', 'margin-top': '20px'}),
         
         html.Div(id='switch-output', children="", style={'margin-top': '10px'}),
-    ]),
+    ], style={
+        'display': 'flex',
+        'flex-direction': 'column',
+        'align-items': 'center',
+        'justify-content': 'center',
+        'width': '100%',
+        'max-width': '1200px',
+        'margin': '0 auto',
+        'padding': '20px',
+        'box-sizing': 'border-box',
+    }),
 ])
+
+
 
 
 
