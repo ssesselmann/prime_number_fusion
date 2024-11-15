@@ -26,12 +26,12 @@ Creating the prime fusion rules can be complicated and time consuming, therefore
 The idea for this function comes from the nuclear fusion of elements in stars, where the elementary building block is hydrogen which is fused into the heavier elements. One can imagine the 1-H as (p1) or the real number (2) and 2-H as (p2) or the real number [3], and 3-H as (p3) or the real number [5]. In stellar nuclear synthesis, elements can not be created until their sub components have been made available.
 Interestingly we see from the table below that the number of steps required to build a prime number is equal to sum of the ordinals, i.e. after 149 steps we have the following stock;
 
-1 x p1
-1 x p2
-1 x p5
-1 x p7
-3 x p31
-1 x p32
+* 1 x p1
+* 1 x p2
+* 1 x p5
+* 1 x p7
+* 3 x p31
+* 1 x p32
 
 Which as we can check sums to 149.
 
