@@ -50,8 +50,6 @@ total_fission_count = 0
 cno_cycle_enabled = True 
 fission_decay_enabled = True
 
-print(cno_cycle_rules)
-
 # ------------------------------------------------------- ALL FUNCTIONS --------------------
 
 # Function to save settings (e.g., after slider changes)
