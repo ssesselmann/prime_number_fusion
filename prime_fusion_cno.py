@@ -36,7 +36,7 @@ center_rule_index   = settings["center_rule_index"]
 spread              = settings["spread"]
 center_rule_index   += 1
 rule_range          = len(fusion_rules)+1
-cno_cycle_rules     = fission_rules[0:3] 
+cno_cycle_rules     = fission_rules[0:4] 
 rad_decay_rules     = fission_rules[-11:]
 rad_decay_scarcity  = 0.10
 heavy_inventory_threshold = 0  # Minimum count for heavy primes before they can fission
@@ -49,6 +49,8 @@ total_fission_count = 0
 
 cno_cycle_enabled = True 
 fission_decay_enabled = True
+
+print(cno_cycle_rules)
 
 # ------------------------------------------------------- ALL FUNCTIONS --------------------
 
