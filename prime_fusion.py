@@ -44,8 +44,10 @@ rad_decay_scarcity  = 0.10
 heavy_inventory_threshold = 0  # Minimum count for heavy primes before they can fission
 
 # Global variables to store state
+P1_STOCK = 100000  # Fundamental p1 reservoir; held constant throughout the run
+
 prime_inventory     = {f"p{i+1}": 0 for i in range(rule_range)}
-prime_inventory["p1"] = 100000  # Initial count for p1 to start fusion
+prime_inventory["p1"] = P1_STOCK
 total_fusion_count  = 0
 total_fission_count = 0
 
@@ -54,6 +56,7 @@ fission_decay_enabled = True
 
 seen_primes = {"p1"}
 csv_path = "prime_proof_of_work.csv"
+stock_csv_path = "prime_final_stock.csv"
 
 # ------------------------------------------------------- ALL FUNCTIONS --------------------
 
@@ -124,7 +127,22 @@ def attempt_weighted_random_fusion():
                 f"fusion count: {total_fusion_count}"
             )
 
-        prime_inventory["p1"] += 1
+            # Automatically stop as soon as p1000 is first reached
+            if result == "p1000":
+                print(
+                    f"TARGET REACHED: p1000 = {prime_list[i]} "
+                    f"at fusion count {total_fusion_count}"
+                )
+
+                # Save a snapshot of the complete inventory at completion
+                save_final_stock()
+
+                start_event.clear()
+                stop_event.set()
+
+        # p1 is fundamental: restore its reservoir to the fixed starting stock
+        # rather than adding one p1 on every successful crank.
+        prime_inventory["p1"] = P1_STOCK
 
         if remainder:
             prime_inventory[remainder] = prime_inventory.get(remainder, 0) + 1
@@ -235,6 +253,20 @@ def log_new_prime(prime_index, fusion_count):
         f.write(f"{label},{value},{fusion_count}\n")
 
 
+def save_final_stock():
+    """Save the complete prime inventory at the end of a run."""
+    with open(stock_csv_path, "w") as f:
+        f.write("prime_index,prime_value,stock\n")
+
+        for i in range(rule_range):
+            label = f"p{i+1}"
+            value = prime_list[i]
+            stock = prime_inventory.get(label, 0)
+            f.write(f"{label},{value},{stock}\n")
+
+    print(f"Final stock saved to {stock_csv_path}")
+
+
 def record_first_prime(result):
     global scatter_points
 
@@ -276,7 +308,7 @@ app.layout = html.Div([
         # Chart container
         html.Div([
             dcc.Graph(id='live-update-graph', style={'height': '600px', 'width': '100%'})
-        ], style={'width': '100%', 'max-width': '1200px', 'margin': '0 auto'}),
+        ], style={'width': '100%', 'max-width': '1800px', 'margin': '0 auto'}),
 
         # Row for switches and buttons
         html.Div([
@@ -307,6 +339,98 @@ app.layout = html.Div([
 
         # Dummy output for switches
         html.Div(id='switch-output', children="", style={'margin-top': '10px'}),
+
+        # Explanation for users viewing the public simulator
+        html.Div([
+            html.H2("What you are seeing"),
+
+            html.P([
+                "This simulator explores a hypothesis in which prime numbers behave like "
+                "discrete fusion states. The label p1 represents the first prime (2), p2 "
+                "represents 3, p3 represents 5, and so on. In the nuclear analogy, the "
+                "prime index is treated as a mass-number-like state: p16 corresponds to "
+                "state 16, p62 to state 62, etc."
+            ]),
+
+            html.P([
+                "The simulation begins with a fixed reservoir of p1, treated as the "
+                "fundamental building block. Fusion can occur only between two prime "
+                "states, according to the rules loaded from settings.json. A successful "
+                "reaction moves material to a higher prime state and may return a lower "
+                "prime as a remainder."
+            ]),
+
+            html.P([
+                "Example: p4 + p3 → p5 + p2 corresponds numerically to "
+                "[7 + 5] → [11 + 3]. The rule allows the system to cross the prime gap "
+                "between 7 and 11 while conserving the ordinal index total."
+            ]),
+
+            html.P([
+                "Each crank is one successful fusion event. The next reaction is selected "
+                "stochastically, with the probability weighted by the current stock of the "
+                "required reactants. This is intended to mimic the statistical nature of "
+                "collisions in a large reaction network."
+            ]),
+
+            html.H3("Reading the plot"),
+
+            html.Ul([
+                html.Li([
+                    html.B("Black bars: "),
+                    "the current stock of each prime state. Large peaks are accumulation "
+                    "points where material is produced faster than it can move onward."
+                ]),
+                html.Li([
+                    html.B("Empty or very small bars: "),
+                    "states that may be hard to reach or may be produced and consumed so "
+                    "quickly that little stock accumulates."
+                ]),
+                html.Li([
+                    html.B("Red dots: "),
+                    "the total fusion count when that prime state first appeared during "
+                    "the run. These provide a first-passage or proof-of-work measure for "
+                    "reaching progressively higher states."
+                ]),
+                html.Li([
+                    html.B("Log Scale: "),
+                    "useful because the stock levels can differ by many orders of magnitude."
+                ]),
+            ]),
+
+            html.P([
+                "The program can optionally include CNO-inspired recycling rules and "
+                "heavy-isotope fission/decay rules. Turning both switches off runs only "
+                "the prime-fusion rule set, which is useful for studying the behaviour of "
+                "the underlying algorithm by itself."
+            ]),
+
+            html.P([
+                "A striking feature of long runs is the appearance of persistent abundance "
+                "peaks and occasional very large bottlenecks. The simulator is intended as "
+                "an exploratory mathematical model, not as a replacement for established "
+                "nuclear reaction physics. Its purpose is to test whether simple prime-based "
+                "rules can generate structures that are interesting to compare with nuclear "
+                "synthesis and elemental abundance."
+            ]),
+
+            html.P([
+                html.B("Prime fusion postulates: "),
+                "p1 is treated as fundamental; fusion is binary; and a higher prime state "
+                "can be produced only when the required partner state is available."
+            ]),
+
+        ], style={
+            'width': '100%',
+            'max-width': '1400px',
+            'margin': '40px auto 20px auto',
+            'padding': '25px 35px',
+            'box-sizing': 'border-box',
+            'line-height': '1.6',
+            'font-size': '16px',
+            'background-color': '#f7f7f7',
+            'border-radius': '8px'
+        }),
     ], style={
         'display': 'flex',
         'flex-direction': 'column',
@@ -339,9 +463,10 @@ scatter_points = {'x': [], 'y': []}  # Stores the x and y coordinates of the red
 @app.callback(
     Output('live-update-graph', 'figure'),
     [Input('interval-component', 'n_intervals'),
-     Input('log-scale-switch', 'on')]  # New input
+     Input('log-scale-switch', 'on')],
+    [State('live-update-graph', 'relayoutData')]
 )
-def update_graph_live(n, log_scale):
+def update_graph_live(n, log_scale, relayout_data):
     global center_rule_index, spread, total_fusion_count, total_fission_count
     global last_prime_inventory, scatter_points
 
@@ -377,12 +502,13 @@ def update_graph_live(n, log_scale):
     ))
 
     fig.update_layout(
+        uirevision="prime-spectrum",
         xaxis_title=f"Prime Elements (p1 to p{rule_range})",
         yaxis_title="Counts",
         yaxis_type=yaxis_type,
         showlegend=True,
         height=600,
-        width=1250,
+        width=1875,
         annotations=[
             dict(
                 x=0.5,
@@ -400,6 +526,34 @@ def update_graph_live(n, log_scale):
             )
         ]
     )
+
+    # Explicitly preserve the user's current zoom/pan ranges.
+    # Plotly sends the current axis ranges in relayoutData whenever the user zooms or pans.
+    if relayout_data:
+        if 'xaxis.range[0]' in relayout_data and 'xaxis.range[1]' in relayout_data:
+            fig.update_xaxes(
+                range=[
+                    relayout_data['xaxis.range[0]'],
+                    relayout_data['xaxis.range[1]']
+                ],
+                autorange=False
+            )
+
+        if 'yaxis.range[0]' in relayout_data and 'yaxis.range[1]' in relayout_data:
+            fig.update_yaxes(
+                range=[
+                    relayout_data['yaxis.range[0]'],
+                    relayout_data['yaxis.range[1]']
+                ],
+                autorange=False
+            )
+
+        # Respect Plotly's "Reset axes" / autoscale action.
+        if relayout_data.get('xaxis.autorange'):
+            fig.update_xaxes(autorange=True)
+
+        if relayout_data.get('yaxis.autorange'):
+            fig.update_yaxes(autorange=True)
 
     return fig
 
@@ -422,7 +576,7 @@ def control_simulation(start_clicks, stop_clicks, reset_clicks):
         print("Resetting counts")
 
         prime_inventory = {f"p{i+1}": 0 for i in range(rule_range)}
-        prime_inventory["p1"] = 1000000
+        prime_inventory["p1"] = P1_STOCK
 
         total_fusion_count = 0
         seen_primes = {"p1"}
@@ -450,6 +604,10 @@ def control_simulation(start_clicks, stop_clicks, reset_clicks):
     # Stop simulation
     elif 'stop-button' in changed_id and stop_clicks and start_event.is_set():
         print("Stopping fusion")
+
+        # Save a snapshot of the complete inventory whenever Stop is pressed
+        save_final_stock()
+
         start_event.clear()
         stop_event.set()
         return False, True  # Enables start and disables stop
