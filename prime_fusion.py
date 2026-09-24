@@ -11,6 +11,10 @@ import time
 import os
 import webbrowser
 import json
+import logging
+
+# Silence Dash/Werkzeug HTTP request logs in the terminal
+logging.getLogger("werkzeug").setLevel(logging.ERROR)
 
 # Initialize the Dash app
 app = dash.Dash(__name__, suppress_callback_exceptions=False)
@@ -158,6 +162,10 @@ def attempt_weighted_random_fusion():
 # Function to apply heavy element fission based on scarcity of key primes
 def attempt_heavy_fission(prime_inventory):
     global total_fission_count
+
+    # Hard safety guard: never execute fission when the switch is OFF.
+    if not fission_decay_event.is_set():
+        return False
     # Calculate total inventory and the scarcity threshold as a percentage of total
     total_inventory = sum(prime_inventory.values())
     dynamic_scarcity_threshold = total_inventory * rad_decay_scarcity
@@ -183,13 +191,17 @@ def attempt_heavy_fission(prime_inventory):
                 total_fission_count += 1
                 return True  # Fission occurred
     else:
-        print("scarcity")
+        pass
     return False  # No fission occurred
 
 
 
 # Function to apply a random CNO cycle rule
 def attempt_cno_cycle(prime_inventory):
+    # Hard safety guard: never execute CNO when the switch is OFF.
+    if not cno_cycle_event.is_set():
+        return False
+
     # Randomly select one of the first three CNO cycle rules from fission_rules
     rule = random.choice(cno_cycle_rules)
     (prime_a, fusion_partner), result, remainder = rule
@@ -205,13 +217,16 @@ def attempt_cno_cycle(prime_inventory):
         print(f"CNO cycle: {prime_a} + {fusion_partner} -> {result} + {remainder}")
         return True
     else:
-        print("scarcity")
         return False
 
 from dash import callback_context
 
 def stochastic_prime_fusion():
-    print("Fusion thread started")
+    print(
+        "Fusion thread started | "
+        f"CNO: {'ON' if cno_cycle_event.is_set() else 'OFF'} | "
+        f"Fission: {'ON' if fission_decay_event.is_set() else 'OFF'}"
+    )
     fission_attempts = 0
     cno_cycle_frequency = 75    # Frequency to trigger the CNO cycle
     rad_decay_frequency = 50    # Frequency to trigger heavy element fission
@@ -563,12 +578,16 @@ def update_graph_live(n, log_scale, relayout_data):
 
 @app.callback(
     [Output('start-button'  , 'disabled'), 
-     Output('stop-button'   , 'disabled')],
+     Output('stop-button'   , 'disabled'),
+     Output('interval-component', 'disabled')],
     [Input('start-button'   , 'n_clicks'),
      Input('stop-button'    , 'n_clicks'),
-     Input('reset-button'   , 'n_clicks')]
+     Input('reset-button'   , 'n_clicks')],
+    [State('cno-cycle-switch', 'on'),
+     State('fission-decay-switch', 'on')]
 )
-def control_simulation(start_clicks, stop_clicks, reset_clicks):
+def control_simulation(start_clicks, stop_clicks, reset_clicks,
+                       cno_switch_state, fission_switch_state):
     global fusion_thread
     global prime_inventory
     global seen_primes
@@ -592,17 +611,40 @@ def control_simulation(start_clicks, stop_clicks, reset_clicks):
 
         initialise_proof_of_work_csv()
 
-        return False, True
+        return False, True, True
 
     # Start simulation
     elif 'start-button' in changed_id and start_clicks and not start_event.is_set():
-        print("Starting fusion")
+
+        # Synchronize the worker flags with the ACTUAL browser switch positions
+        # immediately before the fusion thread starts.
+        if cno_switch_state:
+            cno_cycle_event.set()
+        else:
+            cno_cycle_event.clear()
+
+        if fission_switch_state:
+            fission_decay_event.set()
+        else:
+            fission_decay_event.clear()
+
+        print(
+            "Starting fusion | "
+            f"CNO: {'ON' if cno_cycle_event.is_set() else 'OFF'} | "
+            f"Fission: {'ON' if fission_decay_event.is_set() else 'OFF'}"
+        )
+
         stop_event.clear()
         start_event.set()
+
         if not fusion_thread or not fusion_thread.is_alive():
-            fusion_thread = threading.Thread(target=stochastic_prime_fusion, daemon=True)
+            fusion_thread = threading.Thread(
+                target=stochastic_prime_fusion,
+                daemon=True
+            )
             fusion_thread.start()
-        return True, False  # Disables start and enables stop
+
+        return True, False, False  # Start disabled, Stop enabled, graph refresh enabled
 
     # Stop simulation
     elif 'stop-button' in changed_id and stop_clicks and start_event.is_set():
@@ -613,10 +655,10 @@ def control_simulation(start_clicks, stop_clicks, reset_clicks):
 
         start_event.clear()
         stop_event.set()
-        return False, True  # Enables start and disables stop
+        return False, True, True  # Start enabled, Stop disabled, graph refresh disabled
 
     # Default state (no clicks or re-run of callback)
-    return False, True
+    return False, True, True
 
 @app.callback(
     Output('switch-output', 'children'),
@@ -646,4 +688,4 @@ def update_switch_states(cno_cycle_state, fission_decay_state):
 
 if __name__ == '__main__':
     webbrowser.open_new("http://127.0.0.1:8050")
-    app.run(debug=True, use_reloader=False)
+    app.run(debug=False, use_reloader=False)
