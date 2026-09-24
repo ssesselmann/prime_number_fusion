@@ -51,8 +51,12 @@ prime_inventory["p1"] = P1_STOCK
 total_fusion_count  = 0
 total_fission_count = 0
 
-cno_cycle_enabled = True 
-fission_decay_enabled = True
+cno_cycle_event = threading.Event()
+fission_decay_event = threading.Event()
+
+# Default both optional processes to ON
+cno_cycle_event.set()
+fission_decay_event.set()
 
 seen_primes = {"p1"}
 csv_path = "prime_proof_of_work.csv"
@@ -208,7 +212,6 @@ from dash import callback_context
 
 def stochastic_prime_fusion():
     print("Fusion thread started")
-    global cno_cycle_enabled, fission_decay_enabled
     fission_attempts = 0
     cno_cycle_frequency = 75    # Frequency to trigger the CNO cycle
     rad_decay_frequency = 50    # Frequency to trigger heavy element fission
@@ -222,11 +225,11 @@ def stochastic_prime_fusion():
                 fission_attempts += 1
 
                 # Trigger CNO cycle if enabled
-                if cno_cycle_enabled and fission_attempts % cno_cycle_frequency == 0:
+                if cno_cycle_event.is_set() and fission_attempts % cno_cycle_frequency == 0:
                     attempt_cno_cycle(prime_inventory)
 
                 # Trigger heavy fission if enabled
-                if fission_decay_enabled and fission_attempts % rad_decay_frequency == 0:
+                if fission_decay_event.is_set() and fission_attempts % rad_decay_frequency == 0:
                     attempt_heavy_fission(prime_inventory)
 
     print("Fusion loop stopped")
@@ -616,18 +619,31 @@ def control_simulation(start_clicks, stop_clicks, reset_clicks):
     return False, True
 
 @app.callback(
-    Output('switch-output'          , 'children'),  # Dummy output to trigger the callback
-    [Input('cno-cycle-switch'       , 'on'),
-     Input('fission-decay-switch'   , 'on')]
+    Output('switch-output', 'children'),
+    [Input('cno-cycle-switch', 'on'),
+     Input('fission-decay-switch', 'on')]
 )
 def update_switch_states(cno_cycle_state, fission_decay_state):
-    global cno_cycle_enabled, fission_decay_enabled
-    cno_cycle_enabled       = bool(cno_cycle_state)
-    fission_decay_enabled   = bool(fission_decay_state)
-    return "on"
+
+    if cno_cycle_state:
+        cno_cycle_event.set()
+    else:
+        cno_cycle_event.clear()
+
+    if fission_decay_state:
+        fission_decay_event.set()
+    else:
+        fission_decay_event.clear()
+
+    cno_text = "ON" if cno_cycle_event.is_set() else "OFF"
+    fission_text = "ON" if fission_decay_event.is_set() else "OFF"
+
+    print(f"CNO Cycle: {cno_text}, Fission Decay: {fission_text}")
+
+    return f"CNO: {cno_text} | Fission: {fission_text}"
 
 
 
 if __name__ == '__main__':
     webbrowser.open_new("http://127.0.0.1:8050")
-    app.run(debug=True)
+    app.run(debug=True, use_reloader=False)
