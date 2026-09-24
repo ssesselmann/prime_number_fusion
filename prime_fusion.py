@@ -55,12 +55,12 @@ prime_inventory["p1"] = P1_STOCK
 total_fusion_count  = 0
 total_fission_count = 0
 
-cno_cycle_event = threading.Event()
-fission_decay_event = threading.Event()
-
-# Default both optional processes to ON
-cno_cycle_event.set()
-fission_decay_event.set()
+# -------------------------------------------------------
+# USER DEFAULTS
+# -------------------------------------------------------
+cno_cycle_enabled = False
+fission_decay_enabled = False
+log_scale_switch = False
 
 seen_primes = {"p1"}
 csv_path = "prime_proof_of_work.csv"
@@ -164,7 +164,7 @@ def attempt_heavy_fission(prime_inventory):
     global total_fission_count
 
     # Hard safety guard: never execute fission when the switch is OFF.
-    if not fission_decay_event.is_set():
+    if not fission_decay_enabled:
         return False
     # Calculate total inventory and the scarcity threshold as a percentage of total
     total_inventory = sum(prime_inventory.values())
@@ -199,7 +199,7 @@ def attempt_heavy_fission(prime_inventory):
 # Function to apply a random CNO cycle rule
 def attempt_cno_cycle(prime_inventory):
     # Hard safety guard: never execute CNO when the switch is OFF.
-    if not cno_cycle_event.is_set():
+    if not cno_cycle_enabled:
         return False
 
     # Randomly select one of the first three CNO cycle rules from fission_rules
@@ -222,10 +222,12 @@ def attempt_cno_cycle(prime_inventory):
 from dash import callback_context
 
 def stochastic_prime_fusion():
+    global cno_cycle_enabled, fission_decay_enabled
+
     print(
         "Fusion thread started | "
-        f"CNO: {'ON' if cno_cycle_event.is_set() else 'OFF'} | "
-        f"Fission: {'ON' if fission_decay_event.is_set() else 'OFF'}"
+        f"CNO: {'ON' if cno_cycle_enabled else 'OFF'} | "
+        f"Fission: {'ON' if fission_decay_enabled else 'OFF'}"
     )
     fission_attempts = 0
     cno_cycle_frequency = 75    # Frequency to trigger the CNO cycle
@@ -240,11 +242,11 @@ def stochastic_prime_fusion():
                 fission_attempts += 1
 
                 # Trigger CNO cycle if enabled
-                if cno_cycle_event.is_set() and fission_attempts % cno_cycle_frequency == 0:
+                if cno_cycle_enabled and fission_attempts % cno_cycle_frequency == 0:
                     attempt_cno_cycle(prime_inventory)
 
                 # Trigger heavy fission if enabled
-                if fission_decay_event.is_set() and fission_attempts % rad_decay_frequency == 0:
+                if fission_decay_enabled and fission_attempts % rad_decay_frequency == 0:
                     attempt_heavy_fission(prime_inventory)
 
     print("Fusion loop stopped")
@@ -333,11 +335,11 @@ app.layout = html.Div([
             # Switches for toggling
             html.Div([
                 html.Label("CNO Cycle:", style={'margin-right': '10px'}),
-                daq.BooleanSwitch(id='cno-cycle-switch', on=True, color='red', style={'margin-right': '20px'}),
+                daq.BooleanSwitch(id='cno-cycle-switch', on=cno_cycle_enabled, color='red', style={'margin-right': '20px'}),
                 html.Label("Fission Decay:", style={'margin-right': '10px'}),
-                daq.BooleanSwitch(id='fission-decay-switch', on=True, color='red', style={'margin-right': '20px'}),
+                daq.BooleanSwitch(id='fission-decay-switch', on=fission_decay_enabled, color='red', style={'margin-right': '20px'}),
                 html.Label("Log Scale:", style={'margin-right': '10px'}),
-                daq.BooleanSwitch(id='log-scale-switch', on=True, color='blue', style={'margin-right': '20px'}),
+                daq.BooleanSwitch(id='log-scale-switch', on=log_scale_switch, color='blue', style={'margin-right': '20px'}),
             ], style={'display': 'flex', 'align-items': 'center', 'margin-right': '20px'}),
 
             # Control buttons
@@ -592,46 +594,60 @@ def control_simulation(start_clicks, stop_clicks, reset_clicks,
     global prime_inventory
     global seen_primes
     global total_fusion_count
+    global total_fission_count
+    global scatter_points
+    global last_prime_inventory
+    global cno_cycle_enabled
+    global fission_decay_enabled
     # Check if reset button was clicked
     changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
     if 'reset-button' in changed_id:
-        print("Resetting counts")
+        print("Resetting simulation")
 
-        prime_inventory = {f"p{i+1}": 0 for i in range(rule_range)}
-        prime_inventory["p1"] = P1_STOCK
-
-        total_fusion_count = 0
-        seen_primes = {"p1"}
-
+        # Stop the current worker
         start_event.clear()
         stop_event.set()
 
+        # Clear all stock, then restore the fixed p1 reservoir
+        prime_inventory = {f"p{i+1}": 0 for i in range(rule_range)}
+        prime_inventory["p1"] = P1_STOCK
+
+        # Reset counters and first-appearance tracking
+        total_fusion_count = 0
+        total_fission_count = 0
+        seen_primes = {"p1"}
+
+        # Clear the red first-fusion points
+        scatter_points = {'x': [], 'y': []}
+
+        # Reset inventory tracking used by the graph
+        last_prime_inventory = {f"p{i+1}": 0 for i in range(rule_range)}
+        last_prime_inventory["p1"] = P1_STOCK
+
+        # Start a fresh proof-of-work CSV
         if os.path.exists(csv_path):
             os.remove(csv_path)
-
         initialise_proof_of_work_csv()
 
-        return False, True, True
+        # Remove any previous final-stock snapshot
+        if 'stock_csv_path' in globals() and os.path.exists(stock_csv_path):
+            os.remove(stock_csv_path)
+
+        # Start enabled, Stop disabled, graph refresh enabled so reset is visible immediately
+        return False, True, False
 
     # Start simulation
     elif 'start-button' in changed_id and start_clicks and not start_event.is_set():
 
-        # Synchronize the worker flags with the ACTUAL browser switch positions
+        # Synchronize backend variables with the actual browser switch positions
         # immediately before the fusion thread starts.
-        if cno_switch_state:
-            cno_cycle_event.set()
-        else:
-            cno_cycle_event.clear()
-
-        if fission_switch_state:
-            fission_decay_event.set()
-        else:
-            fission_decay_event.clear()
+        cno_cycle_enabled = bool(cno_switch_state)
+        fission_decay_enabled = bool(fission_switch_state)
 
         print(
             "Starting fusion | "
-            f"CNO: {'ON' if cno_cycle_event.is_set() else 'OFF'} | "
-            f"Fission: {'ON' if fission_decay_event.is_set() else 'OFF'}"
+            f"CNO: {'ON' if cno_cycle_enabled else 'OFF'} | "
+            f"Fission: {'ON' if fission_decay_enabled else 'OFF'}"
         )
 
         stop_event.clear()
@@ -666,19 +682,13 @@ def control_simulation(start_clicks, stop_clicks, reset_clicks,
      Input('fission-decay-switch', 'on')]
 )
 def update_switch_states(cno_cycle_state, fission_decay_state):
+    global cno_cycle_enabled, fission_decay_enabled
 
-    if cno_cycle_state:
-        cno_cycle_event.set()
-    else:
-        cno_cycle_event.clear()
+    cno_cycle_enabled = bool(cno_cycle_state)
+    fission_decay_enabled = bool(fission_decay_state)
 
-    if fission_decay_state:
-        fission_decay_event.set()
-    else:
-        fission_decay_event.clear()
-
-    cno_text = "ON" if cno_cycle_event.is_set() else "OFF"
-    fission_text = "ON" if fission_decay_event.is_set() else "OFF"
+    cno_text = "ON" if cno_cycle_enabled else "OFF"
+    fission_text = "ON" if fission_decay_enabled else "OFF"
 
     print(f"CNO Cycle: {cno_text}, Fission Decay: {fission_text}")
 
